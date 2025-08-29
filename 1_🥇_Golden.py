@@ -57,9 +57,11 @@ if not st.user.is_logged_in:
     if st.button("Google Authenticate"):
         # st.login("auth0")
         st.login("google")
-        upsert_user(st.user)
-        st.rerun()
 
+if st.query_params["code"]:
+    upsert_user(st.user)
+    st.query_params.clear()
+    st.rerun()
 
 
 if st.user.is_logged_in:
