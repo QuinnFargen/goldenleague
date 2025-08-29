@@ -16,7 +16,7 @@ if not st.user.is_logged_in:
 if st.user.is_logged_in:
     if st.sidebar.button("Log out"):
         st.logout()
-        st.experimental_rerun()
+        st.rerun()
     st.sidebar.write(f"Your League: {st.session_state['league']}")
     st.sidebar.write(f"Your User ID: {st.session_state['bettor_id']}")
 

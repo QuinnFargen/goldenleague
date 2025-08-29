@@ -58,13 +58,9 @@ if not st.user.is_logged_in:
         # st.login("auth0")
         st.login("google")
 
-if st.query_params["code"]:
-    upsert_user(st.user)
-    st.query_params.clear()
-    st.rerun()
-
 
 if st.user.is_logged_in:
+    upsert_user(st.user)
     # st.json(st.user)
     # st.json(st.session_state)
     st.header(f"Hello {st.user.name}")
