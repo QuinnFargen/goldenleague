@@ -1,3 +1,4 @@
 sqlalchemy
 streamlit_sortables
 Authlib
+psycopg2-binary
