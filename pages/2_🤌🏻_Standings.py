@@ -9,11 +9,11 @@ st.title(f"Your Current Rankings")
 
 
 # Show authentication button if NOT logged in
-if not st.experimental_user.is_logged_in:
+if not st.user.is_logged_in:
     # Send them to login page
     st.switch_page("1_🥇_Golden.py")
 
-if st.experimental_user.is_logged_in:
+if st.user.is_logged_in:
     if st.sidebar.button("Log out"):
         st.logout()
         st.experimental_rerun()

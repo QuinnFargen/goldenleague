@@ -52,22 +52,22 @@ bettor_query = """
 st.title("The Golden League")
 
 # Show authentication button if NOT logged in
-if not st.experimental_user.is_logged_in:
+if not st.user.is_logged_in:
     st.subheader("Authentication")
     if st.button("Google Authenticate"):
         # st.login("auth0")
         st.login("google")
-        upsert_user(st.experimental_user)
+        upsert_user(st.user)
 
 
 
-if st.experimental_user.is_logged_in:
-    # st.json(st.experimental_user)
+if st.user.is_logged_in:
+    # st.json(st.user)
     # st.json(st.session_state)
-    st.header(f"Hello {st.experimental_user.name}")
-    # st.image(st.experimental_user.picture)
+    st.header(f"Hello {st.user.name}")
+    # st.image(st.user.picture)
     
-    bet_df = run_query(bettor_query, {"google_sub": st.experimental_user.sub})
+    bet_df = run_query(bettor_query, {"google_sub": st.user.sub})
     if not bet_df.empty:
         st.session_state["bettor_id"] = bet_df.iloc[0, 0].item()  # get the scalar value
     else:
@@ -75,7 +75,7 @@ if st.experimental_user.is_logged_in:
 
     if st.sidebar.button("Log out"):
         st.logout()
-        st.experimental_rerun()
+        st.rerun()
 
     league = st.text_input("League Code", "Cousins")
     if st.button("Submit"):
