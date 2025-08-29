@@ -58,6 +58,7 @@ if not st.user.is_logged_in:
         # st.login("auth0")
         st.login("google")
         upsert_user(st.user)
+        st.rerun()
 
 
 
