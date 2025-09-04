@@ -4,24 +4,6 @@ from streamlit_sortables import sort_items
 from sqlalchemy import text
 import pandas as pd
 
-##############################################
-st.title(f"The Draft Board")
-# st.json(st.session_state)
-# st.logo("logo.png")
-
-
-# Show authentication button if NOT logged in
-if not st.user.is_logged_in:
-    # Send them to login page
-    st.switch_page("1_🥇_Golden.py")
-
-if st.user.is_logged_in:
-    if st.sidebar.button("Log out"):
-        st.logout()
-        st.rerun()
-    st.sidebar.write(f"Your League: {st.session_state['league']}")
-    st.sidebar.write(f"Your User ID: {st.session_state['bettor_id']}")
-
 
 ##############################################
 # Database connection
@@ -47,58 +29,78 @@ def run_insert(query: str, params: dict = None):
 
 
 
-# --- Load CSV ---
-teams_df = pd.read_csv("teams.csv")  # Make sure the CSV is in your app folder
-
-st.subheader("Team Info From 2024")
-st.caption("ESPN_FPI is a prediction ranking, so sorting by that column my be informative.")
-st.dataframe(teams_df)
+##############################################
+st.title(f"The Draft Board")
+# st.json(st.session_state)
+# st.logo("logo.png")
 
 
-# 'Abbr' column will be used for sorting
-team_abbrs = teams_df["ABBR"].tolist()
+# Show authentication button if NOT logged in
+if not st.session_state["draftor_name"] or not st.session_state["league_name"]:
+    # Send them to login page
+    st.switch_page("1_🥇_Golden.py")
 
-# Initialize session_state if needed
-if "sorted_teams" not in st.session_state:
-    st.session_state["sorted_teams"] = team_abbrs
+else:
+    if st.sidebar.button("Log out"):
+        st.logout()
+        st.rerun()
+    st.sidebar.write(f"User Name: {st.session_state['draftor_name']}")
+    st.sidebar.write(f"League Name: {st.session_state['league_name']}")
+    st.sidebar.write(f"User ID: {st.session_state['draftor_id']}")
 
-st.subheader("Arrange These In Desired Order")
-# --- Drag-and-drop widget ---
-sorted_list = sort_items(st.session_state["sorted_teams"])
-st.session_state["sorted_teams"] = sorted_list
 
-st.caption("Sometimes page refreshes on movement. Make sure they end up where you want below.")
-# --- Show current order as DataFrame ---
-df_display = pd.DataFrame({
-    "rank": list(range(1, len(sorted_list) + 1)),
-    "team": sorted_list
-})
-st.dataframe(df_display, hide_index=True)
 
-# --- Submit rankings ---
-if st.button("Save Rankings"):
-    user_id = st.session_state.get("bettor_id")  # From login/auth flow
-    if user_id is None:
-        st.error("You must be logged in to save rankings.")
-    else:
-        # Build insert values: [(user_id, team_abbr, rank), ...]
-        values = [(user_id, team, rank) for rank, team in enumerate(sorted_list, start=1)]
+    # --- Load CSV ---
+    teams_df = pd.read_csv("teams.csv")  # Make sure the CSV is in your app folder
 
-        insert_query = """
-        INSERT INTO odd.draft (league, bettor_id, team_abbr, rank)
-        VALUES (:league, :bettor_id, :team_abbr, :rank)
-        ON CONFLICT (league, bettor_id, team_abbr)
-        DO UPDATE SET rank = EXCLUDED.rank, update_dt = NOW();
-        """
+    st.subheader("Team Info From 2024")
+    st.caption("ESPN_FPI is a prediction ranking, so sorting by that column my be informative.")
+    st.dataframe(teams_df)
 
-        for row in values:
-            run_insert(insert_query, {
-                "league": st.session_state["league"],
-                "bettor_id": row[0],
-                "team_abbr": row[1],
-                "rank": row[2]
-            })
 
-        st.success("✅ Rankings saved!")
+    # 'Abbr' column will be used for sorting
+    team_abbrs = teams_df["ABBR"].tolist()
+
+    # Initialize session_state if needed
+    if "sorted_teams" not in st.session_state:
+        st.session_state["sorted_teams"] = team_abbrs
+
+    st.subheader("Arrange These In Desired Order")
+    # --- Drag-and-drop widget ---
+    sorted_list = sort_items(st.session_state["sorted_teams"])
+    st.session_state["sorted_teams"] = sorted_list
+
+    st.caption("Sometimes page refreshes on movement. Make sure they end up where you want below.")
+    # --- Show current order as DataFrame ---
+    df_display = pd.DataFrame({
+        "rank": list(range(1, len(sorted_list) + 1)),
+        "team": sorted_list
+    })
+    st.dataframe(df_display, hide_index=True)
+
+    # --- Submit rankings ---
+    if st.button("Save Rankings"):
+        user_id = st.session_state.get("draftor_id")  # From login/auth flow
+        if user_id is None:
+            st.error("You must be logged in to save rankings.")
+        else:
+            # Build insert values: [(user_id, team_abbr, rank), ...]
+            values = [(user_id, team, rank) for rank, team in enumerate(sorted_list, start=1)]
+
+            insert_query = """
+            INSERT INTO odd.draft (draftor_id, team_abbr, rank)
+            VALUES (:draftor_id, :team_abbr, :rank)
+            ON CONFLICT (draftor_id, team_abbr)
+            DO UPDATE SET rank = EXCLUDED.rank, update_dt = NOW();
+            """
+
+            for row in values:
+                run_insert(insert_query, {
+                    "draftor_id": row[0],
+                    "team_abbr": row[1],
+                    "rank": row[2]
+                })
+
+            st.success("✅ Rankings saved!")
 
 
