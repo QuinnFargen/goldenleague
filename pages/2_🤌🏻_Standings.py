@@ -24,15 +24,52 @@ def run_query(query: str, params: tuple = None):
 
 ##############################################
 # Queries
-draft_query = """
-    SELECT team_abbr, rank
-    FROM odd.draft
-    WHERE draftor_id = :draftor_id
+summary_query = """
+select 
+	a.draftor as "LEAGUE TEAM"
+	,SUM(case when a.won then 1 else 0 end) as WINS
+	,SUM(case when not a.won then 1 else 0 end) as LOSSES
+    --,COUNT(*) as Games
+	,SUM(a.team) * 1.0 / COUNT(*) as "Avg Points Off"
+	,SUM(a.opp) * 1.0 / COUNT(*) as "Avg Points Def"
+from odd.golden_sched a
+where current_date > a.game_dt
+group by a.draftor;
 """
 
+summary_team_query = """
+select
+    A.team_abbr as "NFL TEAM"
+	,a.draftor as "LEAGUE TEAM"
+	,SUM(case when a.won then 1 else 0 end) as WINS
+	,SUM(case when not a.won then 1 else 0 end) as LOSSES
+    --,COUNT(*) as Games
+	,SUM(a.team) * 1.0 / COUNT(*) as "Avg Points Off"
+	,SUM(a.opp) * 1.0 / COUNT(*) as "Avg Points Def"
+from odd.golden_sched a
+where current_date > a.game_dt
+group by a.draftor, A.team_abbr;
+"""
+
+this_week_query = """
+select g.game_dt, g.draftor as home, g.opp_draftor as away, g.team_abbr || ' @ ' || g.opp_abbr as game
+from odd.golden_sched g
+join ball.sched s on g.sched_id = s.sched_id
+join ball.week w on s.week_id = w.week_id
+where current_date between w.week_start_dt and w.week_end_dt
+    and s.home = true;
+"""
+
+last_week_query = """
+select g.game_dt, g.draftor as home, g.opp_draftor as away, g.team_abbr || ' @ ' || g.opp_abbr as game, s.team, s.opp
+from odd.golden_sched g
+join ball.sched s on g.sched_id = s.sched_id
+join ball.week w on s.week_id = w.week_id
+where current_date - 7 between w.week_start_dt and w.week_end_dt
+    and s.home = true;
+"""
 
 ##############################################
-st.title(f"Your Current Rankings")
 # st.logo("logo.png")
 
 # Show authentication button if NOT logged in
@@ -53,14 +90,30 @@ else:
     ##############################################
     # Page
 
-    if "rankings" not in st.session_state:
-        st.session_state["rankings"] = run_query(
-            draft_query, {"draftor_id": st.session_state['draftor_id']}
+    if "summary" not in st.session_state:
+        st.session_state["summary"] = run_query(
+            summary_query
         )
-
-    if st.button("Refresh Rankings"):
-        st.session_state["rankings"] = run_query(
-            draft_query, {"draftor_id": st.session_state['draftor_id']}
+    if "summaryteam" not in st.session_state:
+        st.session_state["summaryteam"] = run_query(
+            summary_team_query
         )
+        
 
-    st.dataframe(st.session_state["rankings"])
+
+    if "thisweek" not in st.session_state:
+        st.session_state["thisweek"] = run_query(
+            this_week_query        )
+
+    if "lastweek" not in st.session_state:
+        st.session_state["lastweek"] = run_query(
+            last_week_query        )
+
+
+    st.title(f"League Standing")
+    st.dataframe(st.session_state["summary"])
+    st.dataframe(st.session_state["summaryteam"])
+    st.header(f"This Week's Games")
+    st.dataframe(st.session_state["thisweek"])
+    st.header(f"Last Week's Games")
+    st.dataframe(st.session_state["lastweek"])
